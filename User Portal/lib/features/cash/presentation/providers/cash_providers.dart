@@ -22,8 +22,8 @@ class CashDrawerState {
   final List<CashTransaction> journal;
 
   CashDrawerState({
-    this.openingFloat = 5000.0, // Default opening float ₹5000
-    this.cashSales = 14520.0,    // Simulated cash sales
+    this.openingFloat = 0.0,  // Set by Owner when opening shift
+    this.cashSales = 0.0,
     this.journal = const [],
   });
 
@@ -46,7 +46,7 @@ class CashDrawerState {
 }
 
 class CashDrawerNotifier extends StateNotifier<CashDrawerState> {
-  CashDrawerNotifier() : super(CashDrawerState(journal: _initialJournal));
+  CashDrawerNotifier() : super(CashDrawerState(journal: []));
 
   void logCashAction(String reason, double amount, String type) {
     final tx = CashTransaction(
@@ -67,23 +67,6 @@ class CashDrawerNotifier extends StateNotifier<CashDrawerState> {
       journal: [],
     );
   }
-
-  static final List<CashTransaction> _initialJournal = [
-    CashTransaction(
-      id: 'TX-99101',
-      reason: 'Vendor Payout: Daily Milk Delivery',
-      amount: 450.0,
-      type: 'Payout',
-      timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-    ),
-    CashTransaction(
-      id: 'TX-99102',
-      reason: 'Midday Cash Drop to Safe Deposit',
-      amount: 5000.0,
-      type: 'Drop',
-      timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-  ];
 }
 
 final cashDrawerProvider = StateNotifierProvider<CashDrawerNotifier, CashDrawerState>((ref) {

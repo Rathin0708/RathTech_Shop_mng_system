@@ -7,6 +7,7 @@ import '../services/connectivity_provider.dart';
 import '../services/sync_provider.dart';
 import '../theme/app_colors.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
+import '../../features/auth/domain/entities/user_entity.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
@@ -126,6 +127,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
+    
+    final authState = ref.watch(authControllerProvider);
+    final userRole = authState.user?.role ?? UserRole.admin; // fallback
 
     // Automatically collapse for smaller screens
     final effectiveExpanded = isMobile ? false : _isExpanded;
@@ -193,55 +197,70 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
                     child: ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       children: [
-                        _buildNavItem(
-                          context,
-                          label: 'Dashboard',
-                          icon: Icons.grid_view_rounded,
-                          route: RouteNames.dashboard,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'New Billing',
-                          icon: Icons.receipt_long_rounded,
-                          route: RouteNames.billing,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'Inventory Catalog',
-                          icon: Icons.inventory_2_outlined,
-                          route: RouteNames.inventory,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'Sales & Invoices',
-                          icon: Icons.analytics_outlined,
-                          route: RouteNames.salesReports,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'Store CRM VIP',
-                          icon: Icons.people_outline_rounded,
-                          route: RouteNames.crm,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'Cash Float Drawer',
-                          icon: Icons.account_balance_wallet_outlined,
-                          route: RouteNames.cashDrawer,
-                          isExpanded: effectiveExpanded,
-                        ),
-                        _buildNavItem(
-                          context,
-                          label: 'Terminal Settings',
-                          icon: Icons.tune_rounded,
-                          route: RouteNames.settings,
-                          isExpanded: effectiveExpanded,
-                        ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.accountant)
+                          _buildNavItem(
+                            context,
+                            label: 'Dashboard',
+                            icon: Icons.grid_view_rounded,
+                            route: RouteNames.dashboard,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.cashier)
+                          _buildNavItem(
+                            context,
+                            label: 'New Billing',
+                            icon: Icons.receipt_long_rounded,
+                            route: RouteNames.billing,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.cashier)
+                          _buildNavItem(
+                            context,
+                            label: 'Inventory Catalog',
+                            icon: Icons.inventory_2_outlined,
+                            route: RouteNames.inventory,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.accountant)
+                          _buildNavItem(
+                            context,
+                            label: 'Sales & Invoices',
+                            icon: Icons.analytics_outlined,
+                            route: RouteNames.salesReports,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager)
+                          _buildNavItem(
+                            context,
+                            label: 'Store CRM VIP',
+                            icon: Icons.people_outline_rounded,
+                            route: RouteNames.crm,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.cashier || userRole == UserRole.accountant)
+                          _buildNavItem(
+                            context,
+                            label: 'Cash Float Drawer',
+                            icon: Icons.account_balance_wallet_outlined,
+                            route: RouteNames.cashDrawer,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
+                          _buildNavItem(
+                            context,
+                            label: 'Team & Staff',
+                            icon: Icons.admin_panel_settings_rounded,
+                            route: RouteNames.staffManagement,
+                            isExpanded: effectiveExpanded,
+                          ),
+                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
+                          _buildNavItem(
+                            context,
+                            label: 'Terminal Settings',
+                            icon: Icons.tune_rounded,
+                            route: RouteNames.settings,
+                            isExpanded: effectiveExpanded,
+                          ),
                       ],
                     ),
                   ),

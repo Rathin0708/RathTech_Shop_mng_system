@@ -18,16 +18,9 @@ class ProductsNotifier extends StateNotifier<List<ProductModel>> {
   Future<void> _initLocalDatabase() async {
     try {
       final cached = await _isar.getCachedProducts();
-      if (cached.isEmpty) {
-        // Seed default items into local Isar DB on first boot
-        await _isar.cacheProducts(_mockCatalog);
-        state = _mockCatalog;
-      } else {
-        state = cached;
-      }
+      state = cached; // start empty if no products added yet
     } catch (e) {
-      // Fallback to mock if something breaks during init
-      state = _mockCatalog;
+      state = []; // clean empty state on error
     }
   }
 
@@ -61,72 +54,15 @@ class ProductsNotifier extends StateNotifier<List<ProductModel>> {
     }
   }
 
-  static final List<ProductModel> _mockCatalog = [
-    ProductModel.create(
-      id: 'prod_01',
-      name: 'Fortune Sunflower Oil 1L',
-      category: 'Grocery',
-      sku: 'FOR-SUN-1L',
-      barcode: '8901234567890',
-      costPrice: 145.00,
-      sellingPrice: 170.00,
-      currentStock: 48,
-      lowStockAlertLevel: 15,
-    ),
-    ProductModel.create(
-      id: 'prod_02',
-      name: 'Aashirvaad Atta 5Kg',
-      category: 'Atta & Flours',
-      sku: 'AASH-ATT-5K',
-      barcode: '8901234567891',
-      costPrice: 280.00,
-      sellingPrice: 310.00,
-      currentStock: 8,
-      lowStockAlertLevel: 10,
-    ),
-    ProductModel.create(
-      id: 'prod_03',
-      name: 'Tata Salt Premium 1Kg',
-      category: 'Spices & Salt',
-      sku: 'TATA-SALT-1K',
-      barcode: '8901234567892',
-      costPrice: 22.00,
-      sellingPrice: 28.00,
-      currentStock: 120,
-    ),
-    ProductModel.create(
-      id: 'prod_04',
-      name: 'Britannia Good Day Nuts 100g',
-      category: 'Biscuits & Snacks',
-      sku: 'BRIT-GD-100G',
-      barcode: '8901234567893',
-      costPrice: 25.00,
-      sellingPrice: 35.00,
-      currentStock: 0,
-      lowStockAlertLevel: 20,
-    ),
-    ProductModel.create(
-      id: 'prod_05',
-      name: 'Surf Excel Easy Wash 1Kg',
-      category: 'Detergents & Cleaning',
-      sku: 'SURF-EX-1K',
-      barcode: '8901234567894',
-      costPrice: 135.00,
-      sellingPrice: 160.00,
-      currentStock: 35,
-      lowStockAlertLevel: 5,
-    ),
-    ProductModel.create(
-      id: 'prod_06',
-      name: 'Maggi 2-Min Noodles 12-Pack',
-      category: 'Instant Food',
-      sku: 'MAGG-12PK',
-      barcode: '8901234567895',
-      costPrice: 144.00,
-      sellingPrice: 168.00,
-      currentStock: 14,
-      lowStockAlertLevel: 10,
-    ),
-  ];
+  Future<void> addProduct(ProductModel product) async {
+    final updated = [...state, product];
+    state = updated;
+    try {
+      await _isar.cacheProducts(updated);
+    } catch (_) {
+      // Fail silently
+    }
+  }
+
 }
 

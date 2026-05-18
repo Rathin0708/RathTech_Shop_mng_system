@@ -6,26 +6,20 @@ import 'core/theme/app_theme.dart';
 
 import 'core/theme/theme_provider.dart';
 
-// NOTE: Run 'flutterfire configure' in User Portal directory to generate firebase_options.dart.
-// Once generated, uncomment the following lines to wire up Firebase.
-/*
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-*/
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase conditionally to prevent initial runtime crashes before config
+
+  // Initialize Firebase
   try {
-    /*
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    */
-    debugPrint("🚀 System bootstrapped. Please complete 'flutterfire configure' to connect Cloud Sync.");
+    debugPrint("🔥 Firebase connected to project: rathtech-a73db");
   } catch (e) {
-    debugPrint("⚠️ Firebase not initialized yet: $e");
+    debugPrint("⚠️ Firebase initialization error: $e");
   }
 
   runApp(

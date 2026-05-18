@@ -58,6 +58,25 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> signUp(String email, String password, String name, UserRole role) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    
+    try {
+      final newUser = await _repository.signUpWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+        name: name.trim(),
+        role: role,
+      );
+      
+      state = state.copyWith(isLoading: false, user: newUser);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString().replaceAll('Exception:', '').trim());
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
     await _repository.signOut();

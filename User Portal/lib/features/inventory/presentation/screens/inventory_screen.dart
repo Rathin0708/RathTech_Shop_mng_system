@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,10 +7,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/connectivity_provider.dart';
 import '../../../../core/models/product_model.dart';
 import '../providers/product_providers.dart';
-import '../../../../core/providers/shop_profile_provider.dart';
-import '../../../../core/models/tenant_model.dart';
 import '../../../../core/providers/onboarding_provider.dart';
 import '../../../../core/widgets/premium_lock.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/domain/entities/user_entity.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -130,7 +130,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final products = ref.watch(productsListProvider);
     final isOnline = ref.watch(connectivityServiceProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final shopProfile = ref.watch(shopProfileProvider);
+    final userRole = ref.watch(authControllerProvider).user?.role ?? UserRole.admin;
+    final canEditStock = userRole == UserRole.admin ||
+        userRole == UserRole.superAdmin ||
+        userRole == UserRole.manager ||
+        userRole == UserRole.cashier;
+    final canAddDelete = userRole == UserRole.admin ||
+        userRole == UserRole.superAdmin ||
+        userRole == UserRole.manager;
 
     // Dynamic list of categories based on catalog items
     final allCategories = ['All Items', ...products.map((p) => p.category).toSet()];
@@ -181,20 +188,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 ),
                 Row(
                   children: [
-                    PremiumLock(
-                      premiumExplanation: 'Unlock Custom Barcode Designer',
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.qr_code_2_rounded, size: 16, color: AppColors.primary),
-                        label: const Text('Generate Custom Barcodes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+                    if (canAddDelete)
+                      PremiumLock(
+                        premiumExplanation: 'Unlock Custom Barcode Designer',
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.qr_code_2_rounded, size: 16, color: AppColors.primary),
+                          label: const Text('Generate Custom Barcodes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                    if (canAddDelete) const SizedBox(width: 12),
                     ElevatedButton.icon(
                       onPressed: isOnline ? () {} : null,
                       icon: Icon(isOnline ? Icons.sync_rounded : Icons.cloud_off_rounded, size: 18),
@@ -453,77 +461,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
                                                 const SizedBox(height: 4),
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Text('SKU: ${prod.sku}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                                    if (shopProfile == ShopCategory.pharmacy) ...[
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: (prod.name.length % 2 == 0 ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: Text(
-                                                          prod.name.length % 2 == 0 ? 'Exp: Oct 2027' : 'Near Expiry (Nov 2026)',
-                                                          style: TextStyle(
-                                                            fontSize: 9.5,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: prod.name.length % 2 == 0 ? Colors.green.shade700 : AppColors.error,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ] else if (shopProfile == ShopCategory.garments) ...[
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: AppColors.primary.withValues(alpha: 0.1),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: const Text(
-                                                          'Size: M, L, XL',
-                                                          style: TextStyle(
-                                                            fontSize: 9.5,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: AppColors.primary,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ] else if (shopProfile == ShopCategory.bakery) ...[
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.orange.withValues(alpha: 0.1),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: const Text(
-                                                          'Shelf Life: 3D',
-                                                          style: TextStyle(
-                                                            fontSize: 9.5,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: Colors.orange,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ] else if (shopProfile == ShopCategory.jewellery) ...[
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.amber.withValues(alpha: 0.1),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: const Text(
-                                                          'Purity: 22K (916)',
-                                                          style: TextStyle(
-                                                            fontSize: 9.5,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: Colors.amber,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
+                                                 Row(
+                                                   children: [
+                                                     Text('SKU: ${prod.sku}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                                                   ],
+                                                 ),
                                               ],
                                             ),
                                           ),
@@ -536,14 +478,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                                 '₹${prod.sellingPrice.toStringAsFixed(2)}',
                                                 style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
                                               ),
-                                              IconButton.filledTonal(
+                                              if (canEditStock)
+                                               IconButton.filledTonal(
                                                 style: IconButton.styleFrom(
                                                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                                                   foregroundColor: AppColors.primary,
                                                 ),
                                                 onPressed: () => _showRestockDialog(context, prod),
                                                 icon: const Icon(Icons.edit_note_rounded, size: 20),
-                                                tooltip: 'Update Count',
+                                                tooltip: 'Update Stock Count',
                                               ),
                                             ],
                                           ),

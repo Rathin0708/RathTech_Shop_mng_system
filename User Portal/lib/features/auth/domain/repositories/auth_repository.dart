@@ -8,6 +8,13 @@ abstract class AuthRepository {
     required String password,
   });
 
+  Future<UserEntity> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String name,
+    required UserRole role,
+  });
+
   Future<void> signOut();
 
   Future<UserEntity?> getCurrentUserProfile();

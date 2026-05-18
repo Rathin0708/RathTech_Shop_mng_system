@@ -16,6 +16,8 @@ import '../../../inventory/presentation/providers/product_providers.dart';
 import '../../../crm/presentation/providers/customer_providers.dart';
 import '../../../../core/models/product_model.dart';
 import '../../../../core/models/customer_model.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../sales/presentation/providers/sales_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -25,22 +27,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  late final List<_SalesData> _chartData;
-
-  @override
-  void initState() {
-    super.initState();
-    // Seed beautiful sample sales hourly trend data
-    _chartData = [
-      _SalesData('09 AM', 1200),
-      _SalesData('11 AM', 4500),
-      _SalesData('01 PM', 8900),
-      _SalesData('03 PM', 3200),
-      _SalesData('05 PM', 11200),
-      _SalesData('07 PM', 15400),
-      _SalesData('09 PM', 6800),
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +37,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final subscription = ref.watch(subscriptionProvider);
     final products = ref.watch(productsListProvider);
     final customers = ref.watch(customersListProvider);
+    final authState = ref.watch(authControllerProvider);
+    final currentUser = authState.user;
+    final salesHistoryAsync = ref.watch(salesHistoryProvider);
+
+    // Calculate real dynamic Today's Net Sales
+    final todayBills = salesHistoryAsync.value?.where((b) {
+      final now = DateTime.now();
+      return b.timestamp.year == now.year &&
+             b.timestamp.month == now.month &&
+             b.timestamp.day == now.day;
+    }).toList() ?? [];
+
+    final todaySales = todayBills.fold(0.0, (sum, b) => sum + b.netTotal);
+
+    // Calculate Profit Margins based on products cost price vs selling price
+    double profitMargins = 0.0;
+    for (final bill in todayBills) {
+      for (final item in bill.purchasedItems) {
+        final prod = products.where((p) => p.id == item.productId).firstOrNull;
+        if (prod != null) {
+          profitMargins += (item.unitPrice - prod.costPrice) * item.quantity;
+        } else {
+          profitMargins += item.lineTotal * 0.20; // 20% fallback margin
+        }
+      }
+    }
+
+    // Calculate Pending Dues
+    final totalPendingDues = customers.fold(0.0, (sum, c) => sum + c.pendingDues);
+
+    // Calculate chart data hourly sales momentum based on actual today's sales
+    final hourlySales = {
+      '09 AM': 0.0,
+      '11 AM': 0.0,
+      '01 PM': 0.0,
+      '03 PM': 0.0,
+      '05 PM': 0.0,
+      '07 PM': 0.0,
+      '09 PM': 0.0,
+    };
+
+    for (final bill in todayBills) {
+      final hour = bill.timestamp.hour;
+      if (hour < 10) {
+        hourlySales['09 AM'] = (hourlySales['09 AM'] ?? 0.0) + bill.netTotal;
+      } else if (hour < 12) {
+        hourlySales['11 AM'] = (hourlySales['11 AM'] ?? 0.0) + bill.netTotal;
+      } else if (hour < 14) {
+        hourlySales['01 PM'] = (hourlySales['01 PM'] ?? 0.0) + bill.netTotal;
+      } else if (hour < 16) {
+        hourlySales['03 PM'] = (hourlySales['03 PM'] ?? 0.0) + bill.netTotal;
+      } else if (hour < 18) {
+        hourlySales['05 PM'] = (hourlySales['05 PM'] ?? 0.0) + bill.netTotal;
+      } else if (hour < 20) {
+        hourlySales['07 PM'] = (hourlySales['07 PM'] ?? 0.0) + bill.netTotal;
+      } else {
+        hourlySales['09 PM'] = (hourlySales['09 PM'] ?? 0.0) + bill.netTotal;
+      }
+    }
+
+    final chartData = hourlySales.entries.map((e) => _SalesData(e.key, e.value)).toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Handled by MainLayout app background
@@ -68,7 +115,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome Back, Admin 👋',
+                      'Welcome Back, ${currentUser?.name ?? 'Admin'} 👋',
                       style: GoogleFonts.outfit(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -79,7 +126,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Row(
                       children: [
                         Text(
-                          'Here is your retail operations digest for today.',
+                          currentUser?.email != null
+                              ? 'Connected: ${currentUser!.email} | Role: ${currentUser.role.name.toUpperCase()}'
+                              : 'Here is your retail operations digest for today.',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             color: Colors.grey.shade500,
@@ -198,27 +247,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     _buildKpiCard(
                       context,
                       title: 'Today\'s Net Sales',
-                      value: '₹42,250.00',
-                      trend: '+14.2%',
-                      isPositive: true,
+                      value: '₹${NumberFormat('#,##,##0.00', 'en_IN').format(todaySales)}',
+                      trend: todaySales > 0 ? '+100.0%' : '0.0%',
+                      isPositive: todaySales >= 0,
                       icon: Icons.insights_rounded,
                       color: AppColors.primary,
                     ),
                     _buildKpiCard(
                       context,
                       title: 'Profit Margins',
-                      value: '₹12,450.00',
-                      trend: '+8.5%',
-                      isPositive: true,
+                      value: '₹${NumberFormat('#,##,##0.00', 'en_IN').format(profitMargins)}',
+                      trend: profitMargins > 0 ? '+100.0%' : '0.0%',
+                      isPositive: profitMargins >= 0,
                       icon: Icons.account_balance_rounded,
                       color: AppColors.success,
                     ),
                     _buildKpiCard(
                       context,
                       title: 'Pending Dues',
-                      value: '₹5,800.00',
-                      trend: '-1.2%',
-                      isPositive: true, // down trend on due is good
+                      value: '₹${NumberFormat('#,##,##0.00', 'en_IN').format(totalPendingDues)}',
+                      trend: totalPendingDues > 0 ? 'Active Ledger' : 'Zero Dues',
+                      isPositive: totalPendingDues == 0,
                       icon: Icons.money_off_csred_rounded,
                       color: AppColors.warning,
                     ),
@@ -245,7 +294,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   // ─── Chart Container ───
                   Expanded(
                     flex: isVertical ? 0 : 7,
-                    child: _buildChartCard(context, isDark),
+                    child: _buildChartCard(context, isDark, chartData),
                   ),
                   if (!isVertical) const SizedBox(width: 24),
                   if (isVertical) const SizedBox(height: 24),
@@ -452,7 +501,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildChartCard(BuildContext context, bool isDark) {
+  Widget _buildChartCard(BuildContext context, bool isDark, List<_SalesData> chartData) {
     return Container(
       height: 380,
       padding: const EdgeInsets.all(24),
@@ -498,8 +547,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 child: Text(
                   'Live',
-                  style: GoogleFonts.inter(
-                    fontSize: 11.5,
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,
                   ),
@@ -507,14 +556,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               )
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Expanded(
             child: SfCartesianChart(
               plotAreaBorderWidth: 0,
-              margin: EdgeInsets.zero,
               primaryXAxis: const CategoryAxis(
                 majorGridLines: MajorGridLines(width: 0),
-                labelStyle: TextStyle(fontSize: 11),
+                labelStyle: TextStyle(fontSize: 10),
               ),
               primaryYAxis: NumericAxis(
                 axisLine: const AxisLine(width: 0),
@@ -525,7 +573,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               tooltipBehavior: TooltipBehavior(enable: true, header: 'Sales Revenue'),
               series: <CartesianSeries<_SalesData, String>>[
                 SplineAreaSeries<_SalesData, String>(
-                  dataSource: _chartData,
+                  dataSource: chartData,
                   xValueMapper: (_SalesData sales, _) => sales.hour,
                   yValueMapper: (_SalesData sales, _) => sales.revenue,
                   name: 'Sales Revenue',

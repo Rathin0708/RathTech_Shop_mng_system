@@ -6,6 +6,8 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/tenant_model.dart';
 import '../../../../core/providers/shop_profile_provider.dart';
+import '../providers/auth_providers.dart';
+import '../../domain/entities/user_entity.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -34,13 +36,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    // Mock API Registration delay
-    await Future.delayed(const Duration(seconds: 2));
+    final success = await ref.read(authControllerProvider.notifier).signUp(
+      email, 
+      password, 
+      shopName, // using shop name as user name for now
+      UserRole.admin // Owner is always admin
+    );
+
+    if (!success) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     // Save shop profile context globally
     ref.read(shopProfileProvider.notifier).updateCategory(_selectedCategory);
-
-    setState(() => _isLoading = false);
 
     if (mounted) {
       context.go(RouteNames.dashboard);

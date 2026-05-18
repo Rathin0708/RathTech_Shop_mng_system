@@ -137,6 +137,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Section 0: Team & Roles Management
+                          _SectionTitle(title: 'Team & Staff Roles', icon: Icons.admin_panel_settings_rounded),
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.surfaceDark : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Staff Access Management', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      const SizedBox(height: 4),
+                                      Text('Create Cashier/Manager accounts and control their UI permissions.', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => context.go(RouteNames.staffManagement),
+                                  icon: const Icon(Icons.people_alt_rounded, size: 18),
+                                  label: const Text('Manage Team'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                    foregroundColor: AppColors.primary,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
                           // Section 1: Hardware Thermal Printer Settings
                           _SectionTitle(title: 'Thermal Printer & Hardware', icon: Icons.print_rounded),
                           const SizedBox(height: 20),

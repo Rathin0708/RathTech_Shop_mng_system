@@ -106,6 +106,62 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserEntity> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String name,
+    required UserRole role,
+  }) async {
+    final auth = _firebaseAuth;
+    final db = _firestore;
+
+    if (auth == null || db == null) {
+      // Mock Offline Mode Creation
+      await Future.delayed(const Duration(milliseconds: 1500));
+      return UserModel(
+        uid: 'offline_user_${DateTime.now().millisecondsSinceEpoch}',
+        email: email,
+        name: name,
+        role: role,
+        isActive: true,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    try {
+      final credential = await auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = credential.user;
+      if (user == null) {
+        throw Exception("Account creation failed: null user body.");
+      }
+
+      final userModel = UserModel(
+        uid: user.uid,
+        email: email,
+        name: name,
+        role: role,
+        isActive: true,
+        createdAt: DateTime.now(),
+      );
+
+      // Save to Firestore
+      await db.collection('users').doc(user.uid).set(userModel.toMap());
+
+      return userModel;
+    } on FirebaseAuthException catch (e) {
+      _logger.e("Firebase signup exception: ${e.code}");
+      throw Exception(_parseAuthErrorCode(e.code));
+    } catch (e) {
+      _logger.e("Non-firebase error during signup sequence: $e");
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     final auth = _firebaseAuth;
     if (auth != null) {

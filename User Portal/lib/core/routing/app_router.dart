@@ -9,6 +9,7 @@ import '../widgets/main_layout.dart';
 import '../../features/billing/presentation/screens/billing_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/staff_management_screen.dart';
 import '../../features/sales/presentation/screens/sales_history_screen.dart';
 import '../../features/cash/presentation/screens/cash_drawer_screen.dart';
 import '../../features/crm/presentation/screens/crm_screen.dart';
@@ -57,6 +58,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: RouteNames.settings,
             name: 'settings',
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.staffManagement,
+            name: 'staff_management',
+            builder: (context, state) => const StaffManagementScreen(),
           ),
           GoRoute(
             path: RouteNames.salesReports,
