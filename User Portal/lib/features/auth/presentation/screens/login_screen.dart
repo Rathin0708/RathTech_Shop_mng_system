@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedRole = 'Cashier';
+  bool _obscurePassword = true;
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
@@ -247,12 +248,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         enabled: !authState.isLoading,
                         onSubmitted: (_) => _handleLogin(),
                         decoration: InputDecoration(
                           hintText: '••••••',
                           prefixIcon: const Icon(Icons.key_outlined, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                           filled: true,
                           fillColor: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF1F2937)
@@ -330,6 +342,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               )
                             ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => context.go(RouteNames.register),
+                          child: Text(
+                            'Don\'t have a store yet? Initialize Instance',
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey.shade300 
+                                  : Colors.black87, 
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       )
