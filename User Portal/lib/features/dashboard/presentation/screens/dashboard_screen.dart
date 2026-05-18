@@ -348,52 +348,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
           width: 1,
         ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.grey.shade200.withValues(alpha: 0.5),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Top Row: Icon Container + Outward Arrow Icon
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1E26) : Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_outward_rounded,
+                  size: 14,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          
+          // Value & Title Column
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
                 style: GoogleFonts.inter(
                   fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 18),
-              )
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              const SizedBox(height: 2),
               Text(
                 value,
                 style: GoogleFonts.outfit(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
+              // Trend Badge Row
               Row(
                 children: [
                   Icon(
@@ -406,13 +431,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     trend,
                     style: GoogleFonts.inter(
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                       color: isPositive ? AppColors.success : AppColors.error,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'vs yesterday',
+                    'than last month',
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       color: Colors.grey.shade500,

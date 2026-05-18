@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/shop_profile_provider.dart';
 import '../../../../core/models/tenant_model.dart';
 import '../../../../core/providers/onboarding_provider.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/premium_lock.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -27,7 +28,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _currencySymbol = '₹ (INR)';
   bool _isSoundEnabled = true;
 
-  bool _isDarkMode = false;
   bool _isAutoBackup = true;
 
   void _executeDataBackup() {
@@ -315,13 +315,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             child: Column(
                               children: [
-                                SwitchListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: const Text('Use AMOLED Dark System Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  subtitle: const Text('Reduces eyestrain for late-night cashiers and dark ambient shops.', style: TextStyle(fontSize: 12)),
-                                  value: _isDarkMode,
-                                  activeThumbColor: AppColors.primary,
-                                  onChanged: (v) => setState(() => _isDarkMode = v),
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final themeMode = ref.watch(themeProvider);
+                                    final isDarkTheme = themeMode == ThemeMode.dark || 
+                                        (themeMode == ThemeMode.system && Theme.of(context).brightness == Brightness.dark);
+                                    
+                                    return SwitchListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: const Text('Use AMOLED Dark System Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      subtitle: const Text('Reduces eyestrain for late-night cashiers and dark ambient shops.', style: TextStyle(fontSize: 12)),
+                                      value: isDarkTheme,
+                                      activeThumbColor: AppColors.primary,
+                                      onChanged: (v) {
+                                        ref.read(themeProvider.notifier).setThemeMode(v ? ThemeMode.dark : ThemeMode.light);
+                                      },
+                                    );
+                                  }
                                 ),
                                 Divider(height: 32, color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
                                 PremiumLock(

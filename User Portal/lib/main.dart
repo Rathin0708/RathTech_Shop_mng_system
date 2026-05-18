@@ -4,6 +4,8 @@ import 'core/routing/app_router.dart';
 import 'core/services/connectivity_provider.dart';
 import 'core/theme/app_theme.dart';
 
+import 'core/theme/theme_provider.dart';
+
 // NOTE: Run 'flutterfire configure' in User Portal directory to generate firebase_options.dart.
 // Once generated, uncomment the following lines to wire up Firebase.
 /*
@@ -42,13 +44,14 @@ class RathTechUserPOSApp extends ConsumerWidget {
     ref.read(connectivityServiceProvider.notifier);
     
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return MaterialApp.router(
       title: 'RathTech POS Terminal',
       debugShowCheckedModeBanner: false,
       
       // Aesthetic Dark/Light Configuration
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       

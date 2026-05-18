@@ -145,7 +145,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
                 color: isDark ? AppColors.surfaceDark : Colors.white,
                 border: Border(
                   right: BorderSide(
-                    color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
                     width: 1,
                   ),
                 ),
@@ -284,15 +284,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
 
                 // 📄 The Nested Active Page Screen
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    switchInCurve: Curves.easeIn,
-                    switchOutCurve: Curves.easeOut,
-                    child: Container(
-                      key: ValueKey<String>(widget.currentPath),
-                      color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-                      child: widget.child,
-                    ),
+                  child: Container(
+                    color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+                    child: widget.child,
                   ),
                 ),
               ],
@@ -313,7 +307,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
         color: isDark ? AppColors.surfaceDark : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
             width: 1,
           ),
         ),

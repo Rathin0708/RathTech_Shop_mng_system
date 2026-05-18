@@ -88,11 +88,8 @@ class SyncService {
           .set(payload, SetOptions(merge: true));
 
       // Write successful! Update local Isar flag to true so it isn't scanned again
-      final isar = await _isarService.db;
-      await isar.writeTxn(() async {
-        bill.isSyncedToCloud = true;
-        await isar.billModels.put(bill); // Save back updated object
-      });
+      bill.isSyncedToCloud = true;
+      await _isarService.logTransaction(bill);
 
       debugPrint("✅ SyncEngine: Invoice ${bill.invoiceNumber} successfully backed up to Firestore.");
       return true;
