@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -125,6 +125,219 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     controller.text = (updated < 0 ? 0 : updated).toString();
   }
 
+  void _showAddProductDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final categoryController = TextEditingController(text: 'General');
+    final skuController = TextEditingController();
+    final barcodeController = TextEditingController();
+    final costPriceController = TextEditingController();
+    final sellingPriceController = TextEditingController();
+    final stockController = TextEditingController(text: '0');
+    final alertController = TextEditingController(text: '10');
+
+    // Auto-generate a unique catalog SKU
+    skuController.text = 'PROD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.add_business_rounded, color: AppColors.primary, size: 24),
+              const SizedBox(width: 12),
+              Text('Register New Product', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Product Name *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.shopping_bag_rounded),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Please enter product name' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: categoryController,
+                            decoration: const InputDecoration(
+                              labelText: 'Category *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.category_rounded),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Enter category' : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: skuController,
+                            decoration: const InputDecoration(
+                              labelText: 'SKU *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.tag_rounded),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Enter SKU' : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: barcodeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Barcode (Optional)',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.qr_code_rounded),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: alertController,
+                            decoration: const InputDecoration(
+                              labelText: 'Safety Alert Level',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.warning_amber_rounded),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              if (v != null && v.isNotEmpty && int.tryParse(v) == null) {
+                                return 'Enter number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: costPriceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Cost (₹) *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.downloading_rounded),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return 'Cost';
+                              if (double.tryParse(v) == null) return 'Invalid';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: sellingPriceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Sell (₹) *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.sell_rounded),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return 'Sell';
+                              if (double.tryParse(v) == null) return 'Invalid';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: stockController,
+                            decoration: const InputDecoration(
+                              labelText: 'Qty *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.inventory_2_rounded),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return 'Stock';
+                              if (int.tryParse(v) == null) return 'Invalid';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  final newProduct = ProductModel.create(
+                    id: 'prod_${DateTime.now().millisecondsSinceEpoch}',
+                    name: nameController.text.trim(),
+                    category: categoryController.text.trim(),
+                    sku: skuController.text.trim(),
+                    barcode: barcodeController.text.trim().isEmpty ? null : barcodeController.text.trim(),
+                    costPrice: double.parse(costPriceController.text),
+                    sellingPrice: double.parse(sellingPriceController.text),
+                    currentStock: int.parse(stockController.text),
+                    lowStockAlertLevel: int.tryParse(alertController.text) ?? 10,
+                  );
+
+                  ref.read(productsListProvider.notifier).addProduct(newProduct);
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('🎉 Product "${newProduct.name}" registered successfully!'),
+                      backgroundColor: AppColors.success,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Register Product'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsListProvider);
@@ -194,7 +407,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.qr_code_2_rounded, size: 16, color: AppColors.primary),
-                          label: const Text('Generate Custom Barcodes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          label: const Text('Generate Barcodes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -203,6 +416,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         ),
                       ),
                     if (canAddDelete) const SizedBox(width: 12),
+                    if (canAddDelete) ...[
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                        onPressed: () => _showAddProductDialog(context),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add Product', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
                     ElevatedButton.icon(
                       onPressed: isOnline ? () {} : null,
                       icon: Icon(isOnline ? Icons.sync_rounded : Icons.cloud_off_rounded, size: 18),
