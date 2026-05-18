@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../core/models/customer_model.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -22,6 +23,7 @@ class _CrmScreenState extends ConsumerState<CrmScreen> {
   void _showAddCustomerDialog() {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
+    final whatsappController = TextEditingController();
     final emailController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -76,6 +78,28 @@ class _CrmScreenState extends ConsumerState<CrmScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: whatsappController,
+                    decoration: InputDecoration(
+                      labelText: 'WhatsApp Number (Optional)',
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 20),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? AppColors.cardDark : Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        tooltip: 'Copy from Mobile',
+                        onPressed: () {
+                          whatsappController.text = phoneController.text;
+                        },
+                      ),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: emailController,
                     decoration: InputDecoration(
                       labelText: 'Email Address (Optional)',
@@ -105,6 +129,7 @@ class _CrmScreenState extends ConsumerState<CrmScreen> {
                         nameController.text.trim(),
                         phoneController.text.trim(),
                         emailController.text.trim(),
+                        whatsappController.text.trim().isEmpty ? null : whatsappController.text.trim(),
                       );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(

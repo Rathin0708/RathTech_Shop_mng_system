@@ -3,6 +3,7 @@ class CustomerModel {
   final String name;
   final String phone;
   final String? email;
+  final String? whatsappNumber;
   final int loyaltyPoints;
   final double totalSpent;
   final double pendingDues;
@@ -12,6 +13,7 @@ class CustomerModel {
     required this.name,
     required this.phone,
     this.email,
+    this.whatsappNumber,
     this.loyaltyPoints = 0,
     this.totalSpent = 0.0,
     this.pendingDues = 0.0,
@@ -24,6 +26,7 @@ class CustomerModel {
     String? name,
     String? phone,
     String? email,
+    String? whatsappNumber,
     int? loyaltyPoints,
     double? totalSpent,
     double? pendingDues,
@@ -33,10 +36,23 @@ class CustomerModel {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       totalSpent: totalSpent ?? this.totalSpent,
       pendingDues: pendingDues ?? this.pendingDues,
     );
   }
-}
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'whatsappNumber': whatsappNumber,
+      'loyaltyPoints': loyaltyPoints,
+      'totalSpent': totalSpent,
+      'pendingDues': pendingDues,
+    };
+  }
+}

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/local_db/isar_provider.dart';
 import '../../../../core/local_db/models/bill_model.dart';
 import '../../../../core/routing/route_names.dart';
@@ -11,8 +13,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/shop_profile_provider.dart';
 import '../../../../core/models/tenant_model.dart';
 import '../../../../core/providers/onboarding_provider.dart';
+import '../../../../core/models/customer_model.dart';
 import '../../../crm/presentation/providers/customer_providers.dart';
 import '../../../inventory/presentation/providers/product_providers.dart';
+import '../../../../core/providers/owner_profile_provider.dart';
 import '../providers/cart_providers.dart';
 import '../providers/parked_carts_provider.dart';
 
@@ -258,6 +262,50 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  void _triggerWhatsAppInvoice(
+      CustomerModel customer, String invoiceNumber, double netTotal, List<CartItemEmbedded> items) async {
+    final owner = ref.read(ownerProfileProvider);
+    final customerWhatsApp = customer.whatsappNumber ?? customer.phone;
+
+    // Sanitize phone number (remove spaces, dashes, ensure country code)
+    var sanitizedCustomerPhone = customerWhatsApp.replaceAll(RegExp(r'\D'), '');
+    if (sanitizedCustomerPhone.length == 10) {
+      sanitizedCustomerPhone = '91$sanitizedCustomerPhone'; // Default to Indian country code
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('*${owner.ownerName.toUpperCase()} INVOICE* 🧾');
+    buffer.writeln('--------------------------');
+    buffer.writeln('Dear *${customer.name}*,');
+    buffer.writeln('Thank you for shopping with us! Here is your digital receipt:');
+    buffer.writeln();
+    buffer.writeln('*Invoice:* $invoiceNumber');
+    buffer.writeln('*Date:* ${DateFormat('dd-MMM-yyyy hh:mm a').format(DateTime.now())}');
+    buffer.writeln();
+    buffer.writeln('*Purchased Items:*');
+    for (final item in items) {
+      buffer.writeln('• ${item.productName} x${item.quantity} - ₹${item.lineTotal.toStringAsFixed(2)}');
+    }
+    buffer.writeln();
+    buffer.writeln('*Net Total Settled:* *₹${netTotal.toStringAsFixed(2)}*');
+    buffer.writeln('--------------------------');
+    buffer.writeln('Visit again! 🙏');
+
+    final text = Uri.encodeComponent(buffer.toString());
+    final url = 'https://wa.me/$sanitizedCustomerPhone?text=$text';
+    final uri = Uri.parse(url);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (_) {
+      // Fallback
+    }
+  }
+
   void _completeSale(String method) async {
     final cart = ref.read(cartProvider);
     final invoiceNo = 'INV-${DateFormat('yyMMdd').format(DateTime.now())}-${DateTime.now().millisecondsSinceEpoch.toString().substring(9)}';
@@ -288,6 +336,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }).toList();
 
       await isarService.logTransaction(newBill);
+
+      // Auto WhatsApp receipt dispatch
+      final owner = ref.read(ownerProfileProvider);
+      if (cart.selectedCustomer != null && owner.autoSendWhatsapp) {
+        _triggerWhatsAppInvoice(
+          cart.selectedCustomer!,
+          invoiceNo,
+          cart.netTotal,
+          newBill.purchasedItems,
+        );
+      }
     } catch (e) {
       // fail-safe fallback log
     }
@@ -416,7 +475,44 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                   ),
                 ],
-              )
+              ),
+              if (cart.selectedCustomer != null) ...[
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    final newBill = BillModel()
+                      ..invoiceNumber = invoiceNo
+                      ..timestamp = DateTime.now()
+                      ..subtotal = cart.subtotal
+                      ..gstAmount = cart.gstAmount
+                      ..netTotal = cart.netTotal
+                      ..paymentMethod = method
+                      ..isSyncedToCloud = false
+                      ..purchasedItems = cart.items.map((item) {
+                        return CartItemEmbedded()
+                          ..productId = item.product.id
+                          ..productName = item.product.name
+                          ..quantity = item.quantity
+                          ..unitPrice = item.unitPrice
+                          ..lineTotal = item.finalTotal;
+                      }).toList();
+                    _triggerWhatsAppInvoice(
+                      cart.selectedCustomer!,
+                      invoiceNo,
+                      cart.netTotal,
+                      newBill.purchasedItems,
+                    );
+                  },
+                  icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 18),
+                  label: Text('Send WhatsApp to ${cart.selectedCustomer!.name}'),
+                ),
+              ],
             ],
           ),
         ),
@@ -1140,12 +1236,14 @@ class _CustomerSelectorDialogState extends ConsumerState<_CustomerSelectorDialog
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _whatsappController = TextEditingController();
   final _emailController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -1195,6 +1293,25 @@ class _CustomerSelectorDialogState extends ConsumerState<_CustomerSelectorDialog
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      controller: _whatsappController,
+                      decoration: InputDecoration(
+                        labelText: 'WhatsApp Number',
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 18),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.copy_rounded, size: 16),
+                          tooltip: 'Copy Mobile Number',
+                          onPressed: () {
+                            _whatsappController.text = _phoneController.text;
+                          },
+                        ),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(labelText: 'Email Address (Optional)', prefixIcon: Icon(Icons.email_rounded)),
                       keyboardType: TextInputType.emailAddress,
@@ -1212,6 +1329,7 @@ class _CustomerSelectorDialogState extends ConsumerState<_CustomerSelectorDialog
                                 _nameController.text,
                                 _phoneController.text,
                                 _emailController.text,
+                                _whatsappController.text.isEmpty ? null : _whatsappController.text,
                               );
                           final latestCustomers = ref.read(customersListProvider);
                           ref.read(cartProvider.notifier).selectCustomer(latestCustomers.last);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/shop_profile_provider.dart';
@@ -9,6 +10,9 @@ import '../../../../core/models/tenant_model.dart';
 import '../../../../core/providers/onboarding_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/premium_lock.dart';
+import '../../../../core/providers/owner_profile_provider.dart';
+import '../../../../core/services/backup_service.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -29,6 +33,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isSoundEnabled = true;
 
   bool _isAutoBackup = true;
+
+  // Cloud Backup Toggles
+  bool _bkpProducts = true;
+  bool _bkpCustomers = true;
+  bool _bkpBills = true;
+  bool _bkpCashFlow = true;
+  bool _bkpStaff = true;
+  bool _isBackingUp = false;
 
   void _executeDataBackup() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -57,6 +69,97 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
+  void _triggerCloudBackup() async {
+    final authState = ref.read(authControllerProvider);
+    final tenantId = authState.user?.tenantId ?? authState.user?.uid;
+    final performedBy = authState.user?.name ?? authState.user?.email ?? 'Owner';
+
+    if (tenantId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Cloud Backup aborted: No active tenant/shop session found. Please register or login.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!_bkpProducts && !_bkpCustomers && !_bkpBills && !_bkpCashFlow && !_bkpStaff) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Select at least one database section to backup!'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isBackingUp = true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            SizedBox(width: 12),
+            Text('Gathering local caches and preparing cloud packages...'),
+          ],
+        ),
+        backgroundColor: AppColors.info,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    try {
+      final backupService = ref.read(backupServiceProvider);
+      final result = await backupService.runCloudBackup(
+        tenantId: tenantId,
+        performedBy: performedBy,
+        products: _bkpProducts,
+        customers: _bkpCustomers,
+        bills: _bkpBills,
+        cashFlow: _bkpCashFlow,
+        staff: _bkpStaff,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Backup Failed: ${result.message}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Backup encountered error: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isBackingUp = false);
+      }
+    }
+  }
+
   void _saveSettings() {
     ref.read(onboardingProvider.notifier).completeStep('settingsCustomized');
     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,6 +176,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final shopProfile = ref.watch(shopProfileProvider);
+    final authState = ref.watch(authControllerProvider);
+    final currentUser = authState.user;
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Hosted in MainLayout
@@ -137,8 +242,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Section 0: Team & Roles Management
-                          _SectionTitle(title: 'Team & Staff Roles', icon: Icons.admin_panel_settings_rounded),
+                          // My Profile Details Section
+                          _SectionTitle(title: 'My Profile Details', icon: Icons.person_rounded),
                           const SizedBox(height: 20),
                           Container(
                             padding: const EdgeInsets.all(24),
@@ -149,26 +254,194 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             child: Row(
                               children: [
+                                CircleAvatar(
+                                  radius: 36,
+                                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                  child: const Icon(Icons.face_rounded, color: AppColors.primary, size: 40),
+                                ),
+                                const SizedBox(width: 24),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Staff Access Management', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            currentUser?.name ?? 'Admin Profile',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                                            ),
+                                            child: Text(
+                                              (currentUser?.role.name ?? 'ADMIN').toUpperCase(),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        currentUser?.email ?? 'N/A',
+                                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      ),
                                       const SizedBox(height: 4),
-                                      Text('Create Cashier/Manager accounts and control their UI permissions.', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.vpn_key_rounded, size: 12, color: Colors.grey.shade500),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Shop/Tenant ID: ${currentUser?.tenantId ?? 'Local Sandbox'}',
+                                            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey.shade500),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Joined: ${currentUser != null ? "${currentUser.createdAt.day}/${currentUser.createdAt.month}/${currentUser.createdAt.year}" : "N/A"}',
+                                            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                ElevatedButton.icon(
-                                  onPressed: () => context.go(RouteNames.staffManagement),
-                                  icon: const Icon(Icons.people_alt_rounded, size: 18),
-                                  label: const Text('Manage Team'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                                    foregroundColor: AppColors.primary,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Section 0: Team & Roles Management
+                          _SectionTitle(title: 'Team & Staff Roles', icon: Icons.admin_panel_settings_rounded),
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.surfaceDark : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Staff Access Management', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                          const SizedBox(height: 4),
+                                          Text('Create Cashier/Manager accounts and control their UI permissions.', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                        ],
+                                      ),
+                                    ),
+                                    ElevatedButton.icon(
+                                      onPressed: () => context.go(RouteNames.staffManagement),
+                                      icon: const Icon(Icons.people_alt_rounded, size: 18),
+                                      label: const Text('Manage Team'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                        foregroundColor: AppColors.primary,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Divider(height: 32, color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                                const Row(
+                                  children: [
+                                    Icon(Icons.rule_rounded, size: 16, color: AppColors.primary),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Staff Cashier Feature Visibility Control',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Select which core POS features are visible to cashiers and staff roles in their left sidebar layout:',
+                                  style: TextStyle(fontSize: 11.5, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 16),
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final ownerProfile = ref.watch(ownerProfileProvider);
+                                    final ownerNotifier = ref.read(ownerProfileProvider.notifier);
+
+                                    return Column(
+                                      children: [
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('📊 Show Operations Dashboard', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to see daily sales charts, performance reports, and gross margins.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowDashboard,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowDashboard: v),
+                                        ),
+                                        const Divider(height: 16),
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('🧾 Show New Billing Register', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to open cart grids, scan items, register VIPs, and check out bills.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowBilling,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowBilling: v),
+                                        ),
+                                        const Divider(height: 16),
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('📦 Show Inventory Stock Catalog', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to view items list, adjust stock levels, and set product categories.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowInventory,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowInventory: v),
+                                        ),
+                                        const Divider(height: 16),
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('📈 Show Sales & Invoice Journals', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to browse invoice history lists, copy past receipt data, and reprint bills.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowSales,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowSales: v),
+                                        ),
+                                        const Divider(height: 16),
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('👥 Show VIP Customers CRM Directory', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to access the loyalty directory, award points, and record custom numbers.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowCrm,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowCrm: v),
+                                        ),
+                                        const Divider(height: 16),
+                                        SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: const Text('💵 Show Cash Float Drawer Register', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                          subtitle: const Text('Allow cashiers to input float cash, perform payout logs, and close drawer shifts.', style: TextStyle(fontSize: 11)),
+                                          value: ownerProfile.staffShowCashDrawer,
+                                          activeThumbColor: AppColors.primary,
+                                          onChanged: (v) => ownerNotifier.updateProfile(staffShowCashDrawer: v),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -335,6 +608,174 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   value: _isSoundEnabled,
                                   activeThumbColor: AppColors.primary,
                                   onChanged: (v) => setState(() => _isSoundEnabled = v),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Section 2.5: WhatsApp Gateway Settings
+                          _SectionTitle(title: 'WhatsApp Invoice Gateway', icon: Icons.message_rounded),
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.surfaceDark : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                            ),
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                final ownerProfile = ref.watch(ownerProfileProvider);
+                                return Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            initialValue: ownerProfile.ownerName,
+                                            decoration: InputDecoration(
+                                              labelText: 'Owner / Shop Profile Name',
+                                              prefixIcon: const Icon(Icons.person_outline_rounded),
+                                              filled: true,
+                                              fillColor: isDark ? AppColors.cardDark : Colors.grey.shade50,
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            onChanged: (v) {
+                                              ref.read(ownerProfileProvider.notifier).updateProfile(ownerName: v);
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: TextFormField(
+                                            initialValue: ownerProfile.whatsappNumber,
+                                            decoration: InputDecoration(
+                                              labelText: 'Owner WhatsApp Number',
+                                              prefixIcon: const Padding(
+                                                padding: EdgeInsets.all(12.0),
+                                                child: FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                                              ),
+                                              filled: true,
+                                              fillColor: isDark ? AppColors.cardDark : Colors.grey.shade50,
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            keyboardType: TextInputType.phone,
+                                            onChanged: (v) {
+                                              ref.read(ownerProfileProvider.notifier).updateProfile(whatsappNumber: v);
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Divider(height: 32, color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                                    SwitchListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: const Text('Auto-Launch WhatsApp Chat on Billing checkout', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      subtitle: const Text('Open WhatsApp pre-filled chat with invoice details right after checkout.', style: TextStyle(fontSize: 12)),
+                                      value: ownerProfile.autoSendWhatsapp,
+                                      activeThumbColor: AppColors.primary,
+                                      onChanged: (v) {
+                                        ref.read(ownerProfileProvider.notifier).updateProfile(autoSendWhatsapp: v);
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Section 2.6: Cloud Sync & Backup Gateway
+                          _SectionTitle(title: 'Shop Cloud Backup Snapshot', icon: Icons.backup_rounded),
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.surfaceDark : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Select modules to package and push to secure Firebase Firestore cloud vault:',
+                                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 16),
+                                
+                                // Modular switches for backing up specific sections
+                                CheckboxListTile(
+                                  title: const Text('📦 Products Catalog', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                  subtitle: const Text('Backup current stock, prices, SKUs, and alert limits.', style: TextStyle(fontSize: 11)),
+                                  value: _bkpProducts,
+                                  activeColor: AppColors.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (v) => setState(() => _bkpProducts = v ?? false),
+                                ),
+                                const Divider(),
+                                CheckboxListTile(
+                                  title: const Text('👥 VIP Customers CRM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                  subtitle: const Text('Backup names, phones, custom WhatsApp accounts, and loyalty score records.', style: TextStyle(fontSize: 11)),
+                                  value: _bkpCustomers,
+                                  activeColor: AppColors.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (v) => setState(() => _bkpCustomers = v ?? false),
+                                ),
+                                const Divider(),
+                                CheckboxListTile(
+                                  title: const Text('🧾 Sales & Invoice Journals', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                  subtitle: const Text('Backup full sales history, payments settled, and line item receipts.', style: TextStyle(fontSize: 11)),
+                                  value: _bkpBills,
+                                  activeColor: AppColors.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (v) => setState(() => _bkpBills = v ?? false),
+                                ),
+                                const Divider(),
+                                CheckboxListTile(
+                                  title: const Text('💵 Cash Drawer & Register Ledgers', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                  subtitle: const Text('Backup cash drops, pay-outs, drawer logs, and shift floats.', style: TextStyle(fontSize: 11)),
+                                  value: _bkpCashFlow,
+                                  activeColor: AppColors.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (v) => setState(() => _bkpCashFlow = v ?? false),
+                                ),
+                                const Divider(),
+                                CheckboxListTile(
+                                  title: const Text('👥 Staff Accounts & Permissions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                  subtitle: const Text('Backup employee credentials, register access roles, and audit keys.', style: TextStyle(fontSize: 11)),
+                                  value: _bkpStaff,
+                                  activeColor: AppColors.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (v) => setState(() => _bkpStaff = v ?? false),
+                                ),
+                                
+                                const SizedBox(height: 24),
+                                
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 20),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 2,
+                                    ),
+                                    onPressed: _isBackingUp ? null : _triggerCloudBackup,
+                                    icon: _isBackingUp
+                                        ? const SizedBox(
+                                            height: 18,
+                                            width: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                          )
+                                        : const Icon(Icons.cloud_upload_rounded, size: 20),
+                                    label: Text(
+                                      _isBackingUp ? 'SECURE ARCHIVING IN PROGRESS...' : 'TRIGGER SECURE CLOUD BACKUP SNAPSHOT',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

@@ -8,6 +8,7 @@ import '../services/sync_provider.dart';
 import '../theme/app_colors.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/auth/domain/entities/user_entity.dart';
+import '../providers/owner_profile_provider.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
@@ -130,6 +131,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
     
     final authState = ref.watch(authControllerProvider);
     final userRole = authState.user?.role ?? UserRole.admin; // fallback
+    final ownerProfile = ref.watch(ownerProfileProvider);
 
     // Automatically collapse for smaller screens
     final effectiveExpanded = isMobile ? false : _isExpanded;
@@ -194,74 +196,87 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
 
                   // Dynamic Sidebar Items
                   Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      children: [
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.accountant)
-                          _buildNavItem(
-                            context,
-                            label: 'Dashboard',
-                            icon: Icons.grid_view_rounded,
-                            route: RouteNames.dashboard,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.cashier)
-                          _buildNavItem(
-                            context,
-                            label: 'New Billing',
-                            icon: Icons.receipt_long_rounded,
-                            route: RouteNames.billing,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.cashier)
-                          _buildNavItem(
-                            context,
-                            label: 'Inventory Catalog',
-                            icon: Icons.inventory_2_outlined,
-                            route: RouteNames.inventory,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || userRole == UserRole.accountant)
-                          _buildNavItem(
-                            context,
-                            label: 'Sales & Invoices',
-                            icon: Icons.analytics_outlined,
-                            route: RouteNames.salesReports,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager)
-                          _buildNavItem(
-                            context,
-                            label: 'Store CRM VIP',
-                            icon: Icons.people_outline_rounded,
-                            route: RouteNames.crm,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.cashier || userRole == UserRole.accountant)
-                          _buildNavItem(
-                            context,
-                            label: 'Cash Float Drawer',
-                            icon: Icons.account_balance_wallet_outlined,
-                            route: RouteNames.cashDrawer,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
-                          _buildNavItem(
-                            context,
-                            label: 'Team & Staff',
-                            icon: Icons.admin_panel_settings_rounded,
-                            route: RouteNames.staffManagement,
-                            isExpanded: effectiveExpanded,
-                          ),
-                        if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
-                          _buildNavItem(
-                            context,
-                            label: 'Terminal Settings',
-                            icon: Icons.tune_rounded,
-                            route: RouteNames.settings,
-                            isExpanded: effectiveExpanded,
-                          ),
-                      ],
+                    child: Builder(
+                      builder: (context) {
+                        final isStaffRole = userRole == UserRole.cashier || userRole == UserRole.staff || userRole == UserRole.accountant || userRole == UserRole.analyst;
+                        
+                        final showDashboard = userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || (isStaffRole && ownerProfile.staffShowDashboard);
+                        final showBilling = userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || (isStaffRole && ownerProfile.staffShowBilling);
+                        final showInventory = userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || (isStaffRole && ownerProfile.staffShowInventory);
+                        final showSales = userRole == UserRole.admin || userRole == UserRole.superAdmin || (isStaffRole && ownerProfile.staffShowSales);
+                        final showCrm = userRole == UserRole.admin || userRole == UserRole.superAdmin || userRole == UserRole.manager || (isStaffRole && ownerProfile.staffShowCrm);
+                        final showCashDrawer = userRole == UserRole.admin || userRole == UserRole.superAdmin || (isStaffRole && ownerProfile.staffShowCashDrawer);
+
+                        return ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          children: [
+                            if (showDashboard)
+                              _buildNavItem(
+                                context,
+                                label: 'Dashboard',
+                                icon: Icons.grid_view_rounded,
+                                route: RouteNames.dashboard,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (showBilling)
+                              _buildNavItem(
+                                context,
+                                label: 'New Billing',
+                                icon: Icons.receipt_long_rounded,
+                                route: RouteNames.billing,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (showInventory)
+                              _buildNavItem(
+                                context,
+                                label: 'Inventory Catalog',
+                                icon: Icons.inventory_2_outlined,
+                                route: RouteNames.inventory,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (showSales)
+                              _buildNavItem(
+                                context,
+                                label: 'Sales & Invoices',
+                                icon: Icons.analytics_outlined,
+                                route: RouteNames.salesReports,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (showCrm)
+                              _buildNavItem(
+                                context,
+                                label: 'Store CRM VIP',
+                                icon: Icons.people_outline_rounded,
+                                route: RouteNames.crm,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (showCashDrawer)
+                              _buildNavItem(
+                                context,
+                                label: 'Cash Float Drawer',
+                                icon: Icons.account_balance_wallet_outlined,
+                                route: RouteNames.cashDrawer,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
+                              _buildNavItem(
+                                context,
+                                label: 'Team & Staff',
+                                icon: Icons.admin_panel_settings_rounded,
+                                route: RouteNames.staffManagement,
+                                isExpanded: effectiveExpanded,
+                              ),
+                            if (userRole == UserRole.admin || userRole == UserRole.superAdmin)
+                              _buildNavItem(
+                                context,
+                                label: 'Terminal Settings',
+                                icon: Icons.tune_rounded,
+                                route: RouteNames.settings,
+                                isExpanded: effectiveExpanded,
+                              ),
+                          ],
+                        );
+                      }
                     ),
                   ),
 
@@ -318,6 +333,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
 
   Widget _buildTopBar(BuildContext context, bool isDark, bool isMobile) {
     final isOnline = ref.watch(connectivityServiceProvider);
+    final authState = ref.watch(authControllerProvider);
 
     return Container(
       height: 76,
@@ -427,7 +443,34 @@ class _MainLayoutState extends ConsumerState<MainLayout> with SingleTickerProvid
               
               const SizedBox(width: 8),
               const VerticalDivider(indent: 24, endIndent: 24, width: 1),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
+
+              if (!isMobile) ...[
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      authState.user?.name ?? 'Admin Profile',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    Text(
+                      (authState.user?.role.name ?? 'ADMIN').toUpperCase(),
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+              ],
 
               // Profile Avatar Widget with Dropdown triggers
               PopupMenuButton<int>(

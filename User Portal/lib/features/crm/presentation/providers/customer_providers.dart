@@ -8,12 +8,13 @@ final customersListProvider = StateNotifierProvider<CustomersNotifier, List<Cust
 class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
   CustomersNotifier() : super([]);
 
-  void registerCustomer(String name, String phone, String email) {
+  void registerCustomer(String name, String phone, String email, String? whatsappNumber) {
     final newCust = CustomerModel(
       id: 'CUST-${DateTime.now().millisecondsSinceEpoch}',
       name: name,
       phone: phone,
       email: email.isEmpty ? null : email,
+      whatsappNumber: whatsappNumber?.isEmpty == true ? null : whatsappNumber,
       loyaltyPoints: 10, // Welcome loyalty points
       totalSpent: 0.0,
       pendingDues: 0.0,
