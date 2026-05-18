@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/product_model.dart';
@@ -11,8 +12,11 @@ class IsarService {
   }
 
   Future<Isar> openDB() async {
-    // Fetch platform native local app document directory
-    final dir = await getApplicationDocumentsDirectory();
+    String? path;
+    if (!kIsWeb) {
+      final dir = await getApplicationDocumentsDirectory();
+      path = dir.path;
+    }
     
     if (Isar.instanceNames.isEmpty) {
       return await Isar.open(
@@ -20,8 +24,8 @@ class IsarService {
           ProductModelSchema, // Generated via build_runner
           BillModelSchema,    // Generated via build_runner
         ],
-        directory: dir.path,
-        inspector: true, // Enables Isar UI inspector in debug mode
+        directory: path ?? '',
+        inspector: !kIsWeb, // Enables Isar UI inspector in debug mode
       );
     }
     

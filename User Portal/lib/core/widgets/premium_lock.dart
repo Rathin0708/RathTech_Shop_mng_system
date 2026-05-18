@@ -59,13 +59,17 @@ class PremiumLock extends ConsumerWidget {
                       children: [
                         const Icon(Icons.lock_rounded, size: 14, color: Colors.amber),
                         const SizedBox(width: 8),
-                        Text(
-                          premiumExplanation,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
+                        Flexible(
+                          child: Text(
+                            premiumExplanation,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],
