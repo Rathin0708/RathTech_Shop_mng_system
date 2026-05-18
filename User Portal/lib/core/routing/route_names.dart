@@ -7,4 +7,6 @@ class RouteNames {
   static const String settings = '/settings';
   static const String salesReports = '/sales_reports';
   static const String cashDrawer = '/cash_drawer';
+  static const String crm = '/crm';
 }
+

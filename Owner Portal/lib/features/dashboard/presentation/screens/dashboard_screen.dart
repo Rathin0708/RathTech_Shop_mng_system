@@ -1,12 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/routing/route_names.dart';
+import '../../../../core/models/tenant_model.dart';
+import '../../../devices/presentation/providers/device_providers.dart';
+import '../../../tenants/presentation/providers/tenant_providers.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 1. Fetch live tenant, device and plan state arrays
+    final tenants = ref.watch(tenantsListProvider);
+    final devices = ref.watch(devicesListProvider);
+
+    // 2. Compute dynamic operational metrics
+    final int activeTenants = tenants.where((t) => t.status == TenantStatus.active || t.status == TenantStatus.trial).length;
+    final int activeSessions = devices.where((d) => d.status == 'Online').length;
+    final int failedSyncs = 4; // Simulated ledger sync queues pending resolution
+
+    // Compute dynamic MRR (Monthly Recurring Revenue) based on each active tenant's pricing structure
+    double dynamicMRR = 0;
+    for (final tenant in tenants) {
+      if (tenant.status == TenantStatus.active) {
+        final planId = tenant.currentPlanId.toLowerCase();
+        if (planId.contains('enterprise')) {
+          dynamicMRR += 5999;
+        } else if (planId.contains('pro')) {
+          dynamicMRR += 2499;
+        } else {
+          dynamicMRR += 999; // Standard retail starter tier rate
+        }
+      }
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Column(
@@ -40,7 +70,7 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.go(RouteNames.tenants),
                 icon: const Icon(Icons.add_rounded, size: 20),
                 label: const Text('Add New Tenant'),
                 style: ElevatedButton.styleFrom(
@@ -54,7 +84,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
 
-          // 2. Analytics Cards Grid
+          // 2. Analytics Cards Grid (Dynamically wired to live providers)
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 1000;
@@ -71,10 +101,10 @@ class DashboardScreen extends StatelessWidget {
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
                 childAspectRatio: 1.8,
-                children: const [
+                children: [
                   _AnalyticsCard(
                     title: 'Total Revenue (MRR)',
-                    value: '₹1,24,800',
+                    value: '₹${dynamicMRR.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                     percentage: '+14.2%',
                     isPositive: true,
                     icon: Icons.monetization_on_outlined,
@@ -82,7 +112,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   _AnalyticsCard(
                     title: 'Active Tenants',
-                    value: '843',
+                    value: activeTenants.toString(),
                     percentage: '+8.4%',
                     isPositive: true,
                     icon: Icons.store_mall_directory_outlined,
@@ -90,7 +120,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   _AnalyticsCard(
                     title: 'Live Active Sessions',
-                    value: '2,401',
+                    value: activeSessions.toString(),
                     percentage: '+21%',
                     isPositive: true,
                     icon: Icons.devices_other_rounded,
@@ -98,9 +128,9 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   _AnalyticsCard(
                     title: 'Failed Sync Events',
-                    value: '12',
+                    value: failedSyncs.toString(),
                     percentage: '-34%',
-                    isPositive: true, // down means good here, display accordingly
+                    isPositive: true,
                     icon: Icons.sync_problem_rounded,
                     iconColor: AppColors.error,
                   ),
@@ -145,11 +175,11 @@ class DashboardScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Expanded(
+                          const Expanded(
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: const [
+                              children: [
                                 _ChartBar(label: 'Mon', heightFactor: 0.4),
                                 _ChartBar(label: 'Tue', heightFactor: 0.6),
                                 _ChartBar(label: 'Wed', heightFactor: 0.8),
@@ -167,7 +197,7 @@ class DashboardScreen extends StatelessWidget {
                   if (isWide) const SizedBox(width: 24),
                   if (!isWide) const SizedBox(height: 24),
 
-                  // Recent Alerts Module (3% width)
+                  // Recent Alerts Module (30% width)
                   Expanded(
                     flex: isWide ? 4 : 0,
                     child: Container(
@@ -275,7 +305,7 @@ class _AnalyticsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: iconColor),

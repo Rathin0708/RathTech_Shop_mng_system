@@ -58,7 +58,7 @@ class _TenantsListScreenState extends ConsumerState<TenantsListScreen> {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                           child: Text(tenant.businessName[0].toUpperCase(), style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary)),
                         ),
                         const SizedBox(width: 20),
@@ -106,7 +106,7 @@ class _TenantsListScreenState extends ConsumerState<TenantsListScreen> {
                     // Live Connection Observer Box
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.grey.withOpacity(0.05), border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.05), border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
                       child: Column(
                         children: [
                           _DiagnosticRow(label: 'Main Branch Gateway', value: 'Active Pings', isOk: true),
@@ -196,7 +196,7 @@ class _TenantsListScreenState extends ConsumerState<TenantsListScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<ShopCategory>(
-                    value: selectedCat,
+                    initialValue: selectedCat,
                     decoration: const InputDecoration(labelText: 'Business Category'),
                     items: ShopCategory.values
                         .map((c) => DropdownMenuItem(value: c, child: Text(c.name.toUpperCase())))
@@ -368,7 +368,7 @@ class _TenantsListScreenState extends ConsumerState<TenantsListScreen> {
                             Row(
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                                   radius: 16,
                                   child: Text(
                                     t.businessName[0].toUpperCase(),
@@ -390,7 +390,7 @@ class _TenantsListScreenState extends ConsumerState<TenantsListScreen> {
                           DataCell(
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                              decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                               child: Text(t.category.name.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
                           ),
@@ -454,7 +454,7 @@ class _StatusBadge extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -489,7 +489,7 @@ class _DetailStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.05),
+          color: Colors.grey.withValues(alpha: 0.05),
           border: Border.all(color: Colors.grey.shade200),
           borderRadius: BorderRadius.circular(12),
         ),

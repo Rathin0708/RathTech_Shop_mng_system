@@ -50,10 +50,10 @@ class UserModel extends UserEntity {
   }
 
   static UserRole _parseRole(String? value) {
-    if (value == null) return UserRole.staff;
+    if (value == null) return UserRole.readOnlyAnalyst;
     return UserRole.values.firstWhere(
       (e) => e.name.toLowerCase() == value.toLowerCase(),
-      orElse: () => UserRole.staff,
+      orElse: () => UserRole.readOnlyAnalyst,
     );
   }
 }

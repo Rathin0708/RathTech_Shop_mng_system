@@ -1,11 +1,62 @@
 enum UserRole {
-  superAdmin,     // Overarching SaaS system owner
-  admin,          // Tenant owner/shop business owner
-  manager,        // Branch/Store manager
-  cashier,        // Sales register personnel
-  accountant,     // Reports viewer only
-  staff,          // Standard inventory/worker user
-  analyst         // Read-only diagnostics user
+  superOwner,       // Overarching SaaS system owner (Super Admin)
+  admin,            // General Administrator
+  supportStaff,     // Staff handling customer service & ticket logs
+  financeManager,   // View financials & MRR records
+  salesManager,     // Handle tenant growth & onboarding campaigns
+  technicalTeam,    // Manage devices, remote configs & parameters
+  readOnlyAnalyst   // Diagnostic read-only access
+}
+
+enum AdminPermission {
+  manageTenants,    // Onboard, suspend, block tenant shops
+  managePlans,      // Configure pricing packages & feature matrices
+  manageDevices,    // Register, reset or revoke active terminal allocations
+  viewFinancials,   // Access MRR metrics, lifetime collections & ARR SPLINE charts
+  exportData,       // Export tenant lists, diagnostics log files
+  customerSupport,  // Read and write ticket summaries, check sync queues
+  configureSystem,  // Manage white-label themes, splash options & configs
+}
+
+extension UserRolePermissions on UserRole {
+  Set<AdminPermission> get permissions {
+    switch (this) {
+      case UserRole.superOwner:
+        return AdminPermission.values.toSet(); // Super Owner holds unrestricted authorization
+      case UserRole.admin:
+        return {
+          AdminPermission.manageTenants,
+          AdminPermission.manageDevices,
+          AdminPermission.viewFinancials,
+          AdminPermission.exportData,
+          AdminPermission.customerSupport,
+        };
+      case UserRole.financeManager:
+        return {
+          AdminPermission.viewFinancials,
+          AdminPermission.exportData,
+        };
+      case UserRole.salesManager:
+        return {
+          AdminPermission.manageTenants,
+          AdminPermission.viewFinancials,
+        };
+      case UserRole.supportStaff:
+        return {
+          AdminPermission.customerSupport,
+          AdminPermission.manageDevices,
+        };
+      case UserRole.technicalTeam:
+        return {
+          AdminPermission.manageDevices,
+          AdminPermission.configureSystem,
+        };
+      case UserRole.readOnlyAnalyst:
+        return {
+          AdminPermission.viewFinancials,
+        };
+    }
+  }
 }
 
 class UserEntity {
@@ -14,7 +65,7 @@ class UserEntity {
   final String name;
   final String? phone;
   final UserRole role;
-  final String? tenantId; // Required for all except global SuperAdmin
+  final String? tenantId; // Associated tenant shop profile if applicable
   final String? branchId;
   final bool isActive;
   final DateTime createdAt;
@@ -31,7 +82,9 @@ class UserEntity {
     required this.createdAt,
   });
 
-  // Helper to check permissions
-  bool get isSaaSOwner => role == UserRole.superAdmin;
+  // Permission Helpers
+  bool get isSaaSOwner => role == UserRole.superOwner;
   bool get isShopOwner => role == UserRole.admin;
+  
+  bool hasPermission(AdminPermission permission) => role.permissions.contains(permission);
 }

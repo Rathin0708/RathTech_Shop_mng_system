@@ -3,6 +3,9 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 
+// 0. Simulation Active Role Selector
+final simulatedRoleProvider = StateProvider<UserRole>((ref) => UserRole.superOwner);
+
 // 1. Repository Instantiation Provider
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();

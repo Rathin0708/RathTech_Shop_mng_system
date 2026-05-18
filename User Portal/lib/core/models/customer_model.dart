@@ -5,6 +5,7 @@ class CustomerModel {
   final String? email;
   final int loyaltyPoints;
   final double totalSpent;
+  final double pendingDues;
 
   const CustomerModel({
     required this.id,
@@ -13,7 +14,10 @@ class CustomerModel {
     this.email,
     this.loyaltyPoints = 0,
     this.totalSpent = 0.0,
+    this.pendingDues = 0.0,
   });
+
+  bool get isVip => totalSpent >= 10000 || loyaltyPoints >= 300;
 
   CustomerModel copyWith({
     String? id,
@@ -22,6 +26,7 @@ class CustomerModel {
     String? email,
     int? loyaltyPoints,
     double? totalSpent,
+    double? pendingDues,
   }) {
     return CustomerModel(
       id: id ?? this.id,
@@ -30,6 +35,8 @@ class CustomerModel {
       email: email ?? this.email,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       totalSpent: totalSpent ?? this.totalSpent,
+      pendingDues: pendingDues ?? this.pendingDues,
     );
   }
 }
+

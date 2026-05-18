@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Icon(
                         Icons.point_of_sale_rounded,
                         size: 500,
-                        color: Colors.white.withOpacity(0.04),
+                        color: Colors.white.withValues(alpha: 0.04),
                       ),
                     ),
                     Padding(
@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: const Icon(Icons.flash_on_rounded, color: AppColors.secondary, size: 32),
@@ -117,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             'Log in to access your shop checkout, track current inventory stocks, and view real-time sales logs.',
                             style: GoogleFonts.inter(
                               fontSize: 16,
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withValues(alpha: 0.7),
                               height: 1.5,
                             ),
                           ),
@@ -275,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -310,7 +310,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.15),
+                            color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(

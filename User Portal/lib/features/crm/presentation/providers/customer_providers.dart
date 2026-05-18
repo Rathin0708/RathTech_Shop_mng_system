@@ -15,9 +15,46 @@ class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
       phone: phone,
       email: email.isEmpty ? null : email,
       loyaltyPoints: 10, // Welcome loyalty points
+      totalSpent: 0.0,
+      pendingDues: 0.0,
     );
     
     state = [...state, newCust];
+  }
+
+  void addLoyaltyPoints(String customerId, int points) {
+    state = [
+      for (final cust in state)
+        if (cust.id == customerId)
+          cust.copyWith(loyaltyPoints: cust.loyaltyPoints + points)
+        else
+          cust
+    ];
+  }
+
+  void recordPurchase(String customerId, double amount) {
+    state = [
+      for (final cust in state)
+        if (cust.id == customerId)
+          cust.copyWith(
+            totalSpent: cust.totalSpent + amount,
+            loyaltyPoints: cust.loyaltyPoints + (amount ~/ 100), // 1 point per ₹100
+          )
+        else
+          cust
+    ];
+  }
+
+  void settleDues(String customerId, double amount) {
+    state = [
+      for (final cust in state)
+        if (cust.id == customerId)
+          cust.copyWith(
+            pendingDues: (cust.pendingDues - amount < 0) ? 0.0 : cust.pendingDues - amount
+          )
+        else
+          cust
+    ];
   }
 
   static final List<CustomerModel> _mockCustomers = [
@@ -28,6 +65,7 @@ class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
       email: 'anand@gmail.com',
       loyaltyPoints: 450,
       totalSpent: 12450.0,
+      pendingDues: 1500.0,
     ),
     const CustomerModel(
       id: 'CUST-002',
@@ -36,6 +74,7 @@ class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
       email: 'priya.s@outlook.com',
       loyaltyPoints: 120,
       totalSpent: 3200.0,
+      pendingDues: 0.0,
     ),
     const CustomerModel(
       id: 'CUST-003',
@@ -43,6 +82,7 @@ class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
       phone: '7654321098',
       loyaltyPoints: 890,
       totalSpent: 24890.0,
+      pendingDues: 0.0,
     ),
     const CustomerModel(
       id: 'CUST-004',
@@ -51,6 +91,8 @@ class CustomersNotifier extends StateNotifier<List<CustomerModel>> {
       email: 'meena.n@yahoo.com',
       loyaltyPoints: 25,
       totalSpent: 950.0,
+      pendingDues: 450.0,
     ),
   ];
 }
+
